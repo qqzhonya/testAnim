@@ -1,81 +1,46 @@
 import * as THREE from 'three';
-import { DebugEnvironment } from 'three/examples/jsm/environments/DebugEnvironment';
 
-// import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
+const textureLoader = new THREE.TextureLoader();
 
-let container, camera, scene, renderer, effect;
+let container, camera, scene, renderer;
 
-const spheres = [];
+const SPRITE_URL = 'assets/images/general/sprite.png';
+const SPEED = 0.00001;
+const SPHERE_NUM = 75;
+const SPRITE_SCALE_DEPTH = 5;
 
 let mouseX = 0;
 let mouseY = 0;
 
+const group = new THREE.Group();
+
 let windowHalfX = window.innerWidth / 2;
 let windowHalfY = window.innerHeight / 2;
 
-const params = {
-  envMap: 'HDR',
-  roughness: 0.0,
-  metalness: 0.0,
-  exposure: 1.0,
-  debug: false
-};
-
-document.addEventListener( 'mousemove', onDocumentMouseMove );
+// document.addEventListener( 'mousemove', onDocumentMouseMove );
 
 init();
 animate();
 
 function init() {
-
 	container = document.getElementById( 'container' );
-	// document.body.appendChild( container );
 
+	renderer = new THREE.WebGLRenderer();
+	renderer.setSize( container.offsetWidth, container.offsetHeight );
+	renderer.setPixelRatio( window.devicePixelRatio );
+
+	scene = new THREE.Scene();
 	camera = new THREE.PerspectiveCamera( 25, container.offsetWidth / container.offsetHeight, 1, 1000);
 	camera.position.z = 1;
 
-	const urls = 'assets/images/general/disc.png';
-	// const format = '.png';
+	const texture = textureLoader.load(SPRITE_URL)
+	const material = new THREE.SpriteMaterial( { map: texture, color: 0xffffff } );
 
-	scene = new THREE.Scene();
-	// scene.background = textureCube;
+	createBalls(material);
+	scene.add(group);
 
-	// const pmremGenerator = new THREE.PMREMGenerator( renderer );
-	// pmremGenerator.compileCubemapShader();
-
-	// const envScene = new DebugEnvironment();
-	// generatedCubeRenderTarget = pmremGenerator.fromScene( envScene );
-
-	const geometry = new THREE.SphereGeometry( 0.05, 32, 16 );
-	const material = new THREE.MeshMatcapMaterial( {
-    color: 0xF8421A,
-		metalness: params.metalness,
-		roughness: params.roughness,
-  } );
-
-	for ( let i = 0; i < 250; i ++ ) {
-
-		const mesh = new THREE.Mesh( geometry, material );
-
-		mesh.position.x = Math.random() * 10 - 5;
-		mesh.position.y = Math.random() * 10 - 5;
-		mesh.position.z = Math.random() * 10 - 5;
-
-		mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1;
-
-		scene.add( mesh );
-
-		spheres.push( mesh );
-	}
-
-	renderer = new THREE.WebGLRenderer();
-	renderer.setPixelRatio( window.devicePixelRatio );
 	container.appendChild( renderer.domElement );
-
-	renderer.setSize( container.offsetWidth, container.offsetHeight );
-
 	window.addEventListener( 'resize', onWindowResize );
-
 }
 
 function onWindowResize() {
@@ -97,34 +62,49 @@ function onDocumentMouseMove( event ) {
 
 }
 
-//
-
 function animate() {
-
 	requestAnimationFrame( animate );
 
 	render();
-
 }
 
 function render() {
+	updateCamera();
+	updateObjects();
+	renderer.render( scene, camera );
+}
 
-	const timer = 0.000005 * Date.now();
-
+function updateCamera () {
 	camera.position.x += ( mouseX - camera.position.x ) * .01;
 	camera.position.y += ( - mouseY - camera.position.y ) * .01;
 
 	camera.lookAt( scene.position );
+}
 
-	for ( let i = 0, il = spheres.length; i < il; i ++ ) {
+function updateObjects () {
+	const timer = SPEED * Date.now();
 
-		const sphere = spheres[ i ];
+	const sprites = group.children;
 
+	for ( let i = 0; i < sprites.length; i++ ) {
+		const sphere = sprites[i];
 		sphere.position.x = 5 * Math.cos( timer + i );
 		sphere.position.y = 5 * Math.sin( timer + i * 1.1 );
 
 	}
+}
 
-	renderer.render( scene, camera );
+function createBalls (material) {
+	for ( let i = 0; i < SPHERE_NUM; i ++ ) {
+		const sprite = new THREE.Sprite( material );
 
+		const x = Math.random() * 10 - 5;
+		const y = Math.random() * 10 - 5;
+		const z = Math.random() * 10 - 5;
+
+		sprite.position.set( x, y, z );
+		sprite.position.multiplyScalar( Math.random() * SPRITE_SCALE_DEPTH + 1 );
+
+		group.add( sprite );
+	}
 }
